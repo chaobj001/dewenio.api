@@ -242,7 +242,7 @@ func checkErr(err error) {
 }
 
 func NewDB() *sql.DB {
-	db, err := sql.Open("mysql", "admin:1qaz2wsx@tcp(106.186.121.97:3306)/dw?charset=utf8")
+	db, err := sql.Open("mysql", "admin:1qaz2wsx@tcp(127.0.0.1:3306)/dw?charset=utf8")
 	checkErr(err)
 	return db
 }
