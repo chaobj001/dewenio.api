@@ -33,7 +33,7 @@ func (self User) getUid() int {
 
 type Answer struct {
 	Aid      int    `json:"aid"`
-	Content  string `json:content`
+	Content  string `json:"content"`
 	Creator  *User  `json:"creator"`
 	Votes    int    `json:"votes"`
 	Comments int    `json:"comments"`
@@ -43,7 +43,7 @@ type Answer struct {
 type Question struct {
 	Qid      int      `json:"qid"`
 	Title    string   `json:"title"`
-	Content  string   `json:content`
+	Content  string   `json:"content"`
 	Votes    int      `json:"votes"`
 	Creator  *User    `json:"creator"`
 	Answers  int      `json:"answers"`
