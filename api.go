@@ -115,8 +115,8 @@ func getQuestionItems(sort string) []*Question {
 	db := NewDB()
 	sql := fmt.Sprintf("select a.qid, b.rev_text, a.creator, a.create_time, a.answers, (a.vote_up_num - a.vote_down_num) as vote_num from questions as a left join question_revisions as b on a.qid = b.qid and a.rev_id = b.rev_num  where a.is_closed=0 and a.is_deleted=0 order by a.%s desc limit 0, 40", orderby)
 	rows, err := db.Query(sql)
-	checkErr(err)
 	defer rows.Close()
+	checkErr(err)
 
 	var (
 		qid      int
@@ -161,6 +161,7 @@ func getTopicNameByID(aTids []int) map[int]string {
 	db := NewDB()
 	sql := fmt.Sprintf("select a.tid, b.rev_text from topics as a left join topic_revisions as b on a.tid=b.tid and a.rev_id=b.rev_num where a.tid in (%s)", sTids)
 	rows, err := db.Query(sql)
+	defer rows.Close()
 	checkErr(err)
 	var (
 		tid      int
@@ -203,6 +204,7 @@ func getUserByID(uids []int) map[int]*User {
 	db := NewDB()
 	sql := fmt.Sprintf("select uid, pub_uid, name, avatar, points from users where uid in (%s)", sUids)
 	rows, err := db.Query(sql)
+	defer rows.Close()
 	checkErr(err)
 	var (
 		uid     int
@@ -236,9 +238,10 @@ func parseQuestionRevText(str string) map[string]string {
 
 		//log.Println(str)
 
-		str = regexp.MustCompile(`&lt;coding-\d+\s+?lang="[a-z|A-Z]+"&gt;`).ReplaceAllString(str, "```")
-		str = regexp.MustCompile(`&lt;/coding&gt;`).ReplaceAllString(str, "```")
-		str = string(blackfriday.MarkdownCommon([]byte(str)))
+		str = regexp.MustCompile(`&lt;coding-\d+\s+?lang="[a-z|A-Z]+"&gt;`).ReplaceAllString(str, "\n```")
+		str = regexp.MustCompile(`&lt;/coding&gt;`).ReplaceAllString(str, "```\n")
+		//log.Println(str)
+		str = string(blackfriday.MarkdownBasic([]byte(str)))
 		str = html.UnescapeString(str)
 		arr["content"] = str
 	}
