@@ -238,7 +238,9 @@ func parseQuestionRevText(str string) map[string]string {
 
 		str = regexp.MustCompile(`&lt;coding-\d+\s+?lang="[a-z|A-Z]+"&gt;`).ReplaceAllString(str, "```")
 		str = regexp.MustCompile(`&lt;/coding&gt;`).ReplaceAllString(str, "```")
-		arr["content"] = string(blackfriday.MarkdownCommon([]byte(str)))
+		str = string(blackfriday.MarkdownCommon([]byte(str)))
+		str = html.UnescapeString(str)
+		arr["content"] = str
 	}
 	return arr
 }
