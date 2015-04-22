@@ -3,10 +3,11 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL"
 	"github.com/gorilla/mux"
-	//"github.com/russross/blackfriday"
-	"fmt"
+	"github.com/russross/blackfriday"
+	"html"
 	"log"
 	"net/http"
 	"regexp"
@@ -225,6 +226,20 @@ func parseQuestionRevText(str string) map[string]string {
 	arr["topic"] = matches[1]
 	arr["title"] = matches[2]
 	arr["content"] = matches[3]
+	if len(arr["content"]) > 0 {
+		//<coding-2 lang="py">
+		//</coding>
+		//arr["content"] = string(blackfriday.MarkdownCommon([]byte(matches[3])))
+		str := html.UnescapeString(arr["content"])
+		//reg := regexp.MustCompile(`<coding[\S\s]+?>`)
+		//s.Replace("foo", "o", "0", -1)
+
+		//log.Println(str)
+
+		str = regexp.MustCompile(`&lt;coding-\d+\s+?lang="[a-z|A-Z]+"&gt;`).ReplaceAllString(str, "```")
+		str = regexp.MustCompile(`&lt;/coding&gt;`).ReplaceAllString(str, "```")
+		arr["content"] = string(blackfriday.MarkdownCommon([]byte(str)))
+	}
 	return arr
 }
 
@@ -242,7 +257,7 @@ func checkErr(err error) {
 }
 
 func NewDB() *sql.DB {
-	db, err := sql.Open("mysql", "admin:1qaz2wsx@tcp(127.0.0.1:3306)/dw?charset=utf8")
+	db, err := sql.Open("mysql", "admin:1qaz2wsx@tcp(192.168.2.130:3306)/dewen?charset=utf8")
 	checkErr(err)
 	return db
 }
@@ -250,7 +265,7 @@ func NewDB() *sql.DB {
 func main() {
 
 	r := mux.NewRouter()
-	r.HandleFunc("/questions/all/{sort:[a-z]+}", QuestionsHandler)                  // /questions/newest,vote,active
+	r.HandleFunc("/questions/all/{sort:[a-z]+}", QuestionsHandler)                  // /questions/all/newest,vote,active
 	r.HandleFunc("/questions/unanswered/{sort:[a-z]+}", QuestionsUnansweredHandler) // /questions/unanswered/newest,vote
 	r.HandleFunc("/questions/hot/{time:[a-z]+}", QuestionsHotHandler)               // /questions/hot/recent,week,month
 
