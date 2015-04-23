@@ -237,11 +237,14 @@ func parseQuestionRevText(str string) map[string]string {
 		//s.Replace("foo", "o", "0", -1)
 
 		//log.Println(str)
+		str = regexp.MustCompile(`\r+`).ReplaceAllString(str, "\n")
+		str = regexp.MustCompile(`\n+`).ReplaceAllString(str, "\n")
+		//str = regexp.MustCompile("``").ReplaceAllString(str, "```")
+		str = regexp.MustCompile(`\s*&lt;coding-[\S\s]+?&gt;\s*`).ReplaceAllString(str, "```")
+		str = regexp.MustCompile(`\s*&lt;/coding&gt;`).ReplaceAllString(str, "```")
 
-		str = regexp.MustCompile(`&lt;coding-\d+\s+?lang="[a-z|A-Z]+"&gt;`).ReplaceAllString(str, "\n```")
-		str = regexp.MustCompile(`&lt;/coding&gt;`).ReplaceAllString(str, "```\n")
-		//log.Println(str)
-		str = string(blackfriday.MarkdownBasic([]byte(str)))
+		str = string(blackfriday.MarkdownCommon([]byte(str)))
+		log.Println(str)
 		str = html.UnescapeString(str)
 		arr["content"] = str
 	}
