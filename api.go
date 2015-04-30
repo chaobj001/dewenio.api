@@ -6,7 +6,8 @@ import (
 	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL"
 	"github.com/gorilla/mux"
-	"github.com/russross/blackfriday"
+	//"github.com/russross/blackfriday"
+	"github.com/shurcooL/go/github_flavored_markdown"
 	"html"
 	"log"
 	"net/http"
@@ -240,12 +241,13 @@ func parseQuestionRevText(str string) map[string]string {
 		str = regexp.MustCompile(`\r+`).ReplaceAllString(str, "\n")
 		str = regexp.MustCompile(`\n+`).ReplaceAllString(str, "\n")
 		//str = regexp.MustCompile("``").ReplaceAllString(str, "```")
-		str = regexp.MustCompile(`\s*&lt;coding-[\S\s]+?&gt;\s*`).ReplaceAllString(str, "```")
-		str = regexp.MustCompile(`\s*&lt;/coding&gt;`).ReplaceAllString(str, "```")
+		str = regexp.MustCompile(`\s*&lt;coding-[\S\s]+?&gt;\s*`).ReplaceAllString(str, "\n\r```")
+		str = regexp.MustCompile(`\s*&lt;/coding&gt;`).ReplaceAllString(str, "```\n\r")
 
-		str = string(blackfriday.MarkdownCommon([]byte(str)))
+		str := html.UnescapeString(string(github_flavored_markdown.Markdown([]byte(str))))
+		//str = string(blackfriday.MarkdownCommon([]byte(str)))
 		log.Println(str)
-		str = html.UnescapeString(str)
+		//str = html.UnescapeString(str)
 		arr["content"] = str
 	}
 	return arr
