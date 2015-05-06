@@ -16,6 +16,16 @@ import (
 	"strings"
 )
 
+const (
+	USER        = 1
+	TOPIC       = 2
+	QUESTION    = 3
+	ANSWER      = 4
+	COMMENT     = 6
+	COMMENT_QST = 7
+	COMMENT_ANS = 8
+)
+
 type Topic struct {
 	Tid  int    `json:"tid"`
 	Name string `json:"name"`
@@ -34,24 +44,34 @@ func (self User) getUid() int {
 }
 
 type Answer struct {
-	Aid      int    `json:"aid"`
-	Content  string `json:"content"`
-	Creator  *User  `json:"creator"`
-	Votes    int    `json:"votes"`
-	Comments int    `json:"comments"`
-	Created  string `json:"created"`
+	Aid          int        `json:"aid"`
+	Content      string     `json:"content"`
+	Creator      *User      `json:"creator"`
+	Votes        int        `json:"votes"`
+	Comments     int        `json:"comments"`
+	Created      string     `json:"created"`
+	CommentItems []*Comment `json:"commentItems"`
 }
 
 type Question struct {
-	Qid      int      `json:"qid"`
-	Title    string   `json:"title"`
-	Content  string   `json:"content"`
-	Votes    int      `json:"votes"`
-	Creator  *User    `json:"creator"`
-	Answers  int      `json:"answers"`
-	Comments int      `json:"comments"`
-	Created  int      `json:"created"`
-	Topics   []*Topic `json:"topics"`
+	Qid          int        `json:"qid"`
+	Title        string     `json:"title"`
+	Content      string     `json:"content"`
+	Votes        int        `json:"votes"`
+	Creator      *User      `json:"creator"`
+	Answers      int        `json:"answers"`
+	Comments     int        `json:"comments"`
+	Created      int        `json:"created"`
+	Topics       []*Topic   `json:"topics"`
+	CommentItems []*Comment `json:"commentItems"`
+	AnswerItems  []*Answer  `json:"answerItems"`
+}
+
+type Comment struct {
+	Cid     int    `json:"cid"`
+	Creator *User  `json:"creator"`
+	Content string `json:content`
+	Created int    `json:"created"`
 }
 
 func listQuestions(qtype string, sort string) []*Question {
@@ -222,6 +242,108 @@ func getUserByID(uids []int) map[int]*User {
 	return users
 }
 
+func getQuestionByQid(id int) Question {
+	var (
+		question     Question
+		qid          int
+		rev_text     string
+		created      int
+		answers      int
+		votes        int
+		uid          int
+		comments_num int
+	)
+	db := NewDB()
+
+	err := db.QueryRow("select a.qid, b.rev_text, a.creator, a.create_time, a.answers, (a.vote_up_num - a.vote_down_num) as vote_num, a.comments_num from questions as a left join question_revisions as b on a.qid = b.qid and a.rev_id = b.rev_num  where a.qid=? and a.is_closed=0 and a.is_deleted=0", id).Scan(&qid, &rev_text, &uid, &created, &answers, &votes, &comments_num)
+	checkErr(err)
+
+	//decode question rev text
+	arr := parseQuestionRevText(rev_text)
+
+	//topic obj
+	aTids := splitStr2Int(arr["topic"])
+	var topics []*Topic
+	for _, tid := range aTids {
+		topics = append(topics, &Topic{Tid: tid})
+	}
+
+	//user obj
+	creator := &User{uid: uid}
+
+	return Question{Qid: qid, Title: arr["title"], Content: arr["content"], Creator: creator, Created: time.Unix(int64(create_time), 0).Format("2006-01-02 15:04"), Answers: answers, Votes: votes, Topics: topics, Comments: comments_num}
+}
+
+//获取实体评论
+func getCommentsByObjType(pid int, cmt_type int) []*Comment {
+	var comments []*Comment
+	db := NewDB()
+	sql := fmt.Sprintf("select a.cid, a.content, a.create_time, b.uid,b.pub_uid,b.name,b.avatar,b.points from comments as a left join users as b on a.creator = b.uid where pid=%d and type=%d and is_deleted=0 order by a.cid asc", pid, cmt_type)
+	rows, err := db.Query(sql)
+	defer rows.Close()
+	checkErr(err)
+	var (
+		cid,
+		content,
+		create_time,
+		uid,
+		pub_uid,
+		name,
+		avatar,
+		points
+	)
+	for rows.Next() {
+		err := rows.Scan(&cid, &content, &create_time, &uid, &pub_uid, &name, &avatar, &points)
+		checkErr(err)
+
+		creator := &User{uid: uid, Pub_uid: pub_uid, Name: name, Avatar: avatar, Points: points}
+		comments = append(comments, &Comment{Cid: cid, Ctrator: creator, Content: content, Created: create_time})
+	}
+	return comments
+}
+
+//获取实体评论
+func getAnswersByQid(pid int) []*Answer {
+	var answers []*Answer
+	db := NewDB()
+	sql := fmt.Sprintf("select a.aid, a.creator, a.create_time, (a.vote_up_num-a.vote_down_num) as vote_num,a.comments_num, b.rev_text from answers as a left join answer_revisions as b on a.aid = b.aid and a.rev_id=b.rev_num where qid=%d and a.is_deleted=0 order by a.aid asc", pid, cmt_type)
+	rows, err := db.Query(sql)
+	defer rows.Close()
+	checkErr(err)
+	var (
+		aid,
+		uid,
+		create_time,
+		vote_num,
+		comments_num,
+		rev_text
+	)
+	for rows.Next() {
+		err := rows.Scan(&aid, &uid, &create_time, &vote_num, &comments_num, &rev_text)
+		checkErr(err)
+
+		creator := &User{uid: uid}
+		cnt = parseAnswerRevText(rev_text)
+		answers = append(answers, &Answer{Aid: aid, Creator: creator, Content: cnt, Created: create_time, comments: comments_num, Votes: vote_num})
+	}
+
+	var uids []int
+	for _, ans := range answers {
+		uids = append(uids, ans.Creator.getUid())
+	}
+	//获取用户信息
+	var users = getUserByID(uids)
+	//整合
+	for _, ans := range answers {
+		ans.Creator = users[ans.Creator.getUid()]
+		if ans.Comments > 0 {
+			ans.CommentItems = getCommentsByObjType(ans.Aid, COMMENT_ANS)
+		}
+	}
+
+	return answers
+}
+
 func parseQuestionRevText(str string) map[string]string {
 	arr := make(map[string]string)
 	re := regexp.MustCompile(`<topic>([\S\s]+?)</topic>\s*?<title>([\S\s]+?)</title>\s*?<content>([\S\s]*?)</content>`)
@@ -259,6 +381,12 @@ func parseTopicRevText(str string) string {
 	return matches[1]
 }
 
+func parseAnswerRevText(str string) string {
+	re := regexp.MustCompile(`<content>([\S\s]+?)</content>`)
+	matches := re.FindStringSubmatch(str)
+	return matches[1]
+}
+
 //helper
 func checkErr(err error) {
 	if err != nil {
@@ -278,6 +406,7 @@ func main() {
 	r.HandleFunc("/questions/all/{sort:[a-z]+}", QuestionsHandler)                  // /questions/all/newest,vote,active
 	r.HandleFunc("/questions/unanswered/{sort:[a-z]+}", QuestionsUnansweredHandler) // /questions/unanswered/newest,vote
 	r.HandleFunc("/questions/hot/{time:[a-z]+}", QuestionsHotHandler)               // /questions/hot/recent,week,month
+	r.HandleFunc("q/{qid:[0-9]+}", QuestionDetailHandler)
 
 	http.Handle("/", r)
 
@@ -308,4 +437,9 @@ func QuestionsUnansweredHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func QuestionsHotHandler(w http.ResponseWriter, r *http.Request) {
+}
+
+func QuestionDetailHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	qid := params["qid"]
 }
