@@ -48,27 +48,27 @@ func (self User) getUid() int {
 }
 
 type Answer struct {
-	Aid          int        `json:"aid"`
-	Content      string     `json:"content"`
-	Creator      *User      `json:"creator"`
-	Votes        int        `json:"votes"`
-	Comments     int        `json:"comments"`
-	Created      int        `json:"created"`
-	CommentItems []*Comment `json:"commentItems"`
+	Aid          int         `json:"aid"`
+	Content      interface{} `json:"content"`
+	Creator      *User       `json:"creator"`
+	Votes        int         `json:"votes"`
+	Comments     int         `json:"comments"`
+	Created      int         `json:"created"`
+	CommentItems []*Comment  `json:"commentItems"`
 }
 
 type Question struct {
-	Qid          int        `json:"qid"`
-	Title        string     `json:"title"`
-	Content      string     `json:"content"`
-	Votes        int        `json:"votes"`
-	Creator      *User      `json:"creator"`
-	Answers      int        `json:"answers"`
-	Comments     int        `json:"comments"`
-	Created      int        `json:"created"`
-	Topics       []*Topic   `json:"topics"`
-	CommentItems []*Comment `json:"commentItems"`
-	AnswerItems  []*Answer  `json:"answerItems"`
+	Qid          int         `json:"qid"`
+	Title        string      `json:"title"`
+	Content      interface{} `json:"content"`
+	Votes        int         `json:"votes"`
+	Creator      *User       `json:"creator"`
+	Answers      int         `json:"answers"`
+	Comments     int         `json:"comments"`
+	Created      int         `json:"created"`
+	Topics       []*Topic    `json:"topics"`
+	CommentItems []*Comment  `json:"commentItems"`
+	AnswerItems  []*Answer   `json:"answerItems"`
 }
 
 type Comment struct {
@@ -168,7 +168,7 @@ func getQuestionItems(sort string) []*Question {
 		//user obj
 		creator := &User{uid: uid}
 
-		questions = append(questions, &Question{Qid: qid, Title: arr["title"], Content: arr["content"], Creator: creator, Created: created, Answers: answers, Votes: votes, Topics: topics})
+		questions = append(questions, &Question{Qid: qid, Title: arr["title"], Content: template.HTML(arr["content"]), Creator: creator, Created: created, Answers: answers, Votes: votes, Topics: topics})
 	}
 
 	return questions
@@ -300,7 +300,7 @@ func getQuestionByQid(id int) Question {
 	users := getUserByID(uids)
 	creator := users[uid]
 
-	question = Question{Qid: qid, Title: arr["title"], Content: arr["content"], Creator: creator, Created: created, Answers: answers, Votes: votes, Topics: topics, Comments: comments_num}
+	question = Question{Qid: qid, Title: arr["title"], Content: template.HTML(arr["content"]), Creator: creator, Created: created, Answers: answers, Votes: votes, Topics: topics, Comments: comments_num}
 	return question
 }
 
@@ -355,7 +355,7 @@ func getAnswersByQid(qid int) []*Answer {
 
 		creator := &User{uid: uid}
 		cnt := parseAnswerRevText(rev_text)
-		answers = append(answers, &Answer{Aid: aid, Creator: creator, Content: cnt, Created: create_time, Comments: comments_num, Votes: vote_num})
+		answers = append(answers, &Answer{Aid: aid, Creator: creator, Content: template.HTML(cnt), Created: create_time, Comments: comments_num, Votes: vote_num})
 	}
 
 	var uids []int
@@ -398,7 +398,7 @@ func parseQuestionRevText(str string) map[string]string {
 		str = regexp.MustCompile(`\s*&lt;/coding&gt;`).ReplaceAllString(str, "```\n\r")
 
 		//str = html.UnescapeString(string(github_flavored_markdown.Markdown([]byte(str))))
-		str = template.HTML(string(github_flavored_markdown.Markdown([]byte(str))))
+		str = string(github_flavored_markdown.Markdown([]byte(str)))
 
 		//str = string(blackfriday.MarkdownCommon([]byte(str)))
 		//log.Println(str)
@@ -434,7 +434,7 @@ func parseAnswerRevText(str string) string {
 		str = regexp.MustCompile(`\s*&lt;/coding&gt;`).ReplaceAllString(str, "```\n\r")
 
 		//str = html.UnescapeString(string(github_flavored_markdown.Markdown([]byte(str))))
-		str = template.HTML(string(github_flavored_markdown.Markdown([]byte(str))))
+		str = string(github_flavored_markdown.Markdown([]byte(str)))
 		text = str
 	}
 
@@ -540,16 +540,16 @@ func QuestionDetailHandler(w http.ResponseWriter, r *http.Request) {
             </div>
             {{end}}
         </div>
+        {{with .AnswerItems}}
         <div class="sort-wrap">
             <div class="subheader">{{.Answers}}个答案</div>
         </div>
-        {{with .AnswerItems}}
         {{range .}}
         <div class="answer-summary">
             <div class="post-text article markdown-body">{{.Content}}</div>
             <div class="user-info">
                 <div class="user-action-time">
-                    提问于<span class="relativetime">{{.Created}}</span>
+                    回答于<span class="relativetime">{{.Created}}</span>
                 </div>
                 {{with .Creator}}
                 <div class="user-avatar">
