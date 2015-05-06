@@ -540,10 +540,10 @@ func QuestionDetailHandler(w http.ResponseWriter, r *http.Request) {
             </div>
             {{end}}
         </div>
-        {{with .AnswerItems}}
         <div class="sort-wrap">
             <div class="subheader">{{.Answers}}个答案</div>
         </div>
+        {{with .AnswerItems}}
         {{range .}}
         <div class="answer-summary">
             <div class="post-text article markdown-body">{{.Content}}</div>
