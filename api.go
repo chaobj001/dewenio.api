@@ -397,8 +397,8 @@ func parseQuestionRevText(str string) map[string]string {
 		str = regexp.MustCompile(`\s*&lt;coding-[\S\s]+?&gt;\s*`).ReplaceAllString(str, "\n\r```")
 		str = regexp.MustCompile(`\s*&lt;/coding&gt;`).ReplaceAllString(str, "```\n\r")
 
-		//str = html.UnescapeString(string(github_flavored_markdown.Markdown([]byte(str))))
-		str = string(github_flavored_markdown.Markdown([]byte(str)))
+		str = html.UnescapeString(string(github_flavored_markdown.Markdown([]byte(str))))
+		//str = string(github_flavored_markdown.Markdown([]byte(str)))
 
 		//str = string(blackfriday.MarkdownCommon([]byte(str)))
 		//log.Println(str)
@@ -433,8 +433,8 @@ func parseAnswerRevText(str string) string {
 		str = regexp.MustCompile(`\s*&lt;coding-[\S\s]+?&gt;\s*`).ReplaceAllString(str, "\n\r```")
 		str = regexp.MustCompile(`\s*&lt;/coding&gt;`).ReplaceAllString(str, "```\n\r")
 
-		//str = html.UnescapeString(string(github_flavored_markdown.Markdown([]byte(str))))
-		str = string(github_flavored_markdown.Markdown([]byte(str)))
+		str = html.UnescapeString(string(github_flavored_markdown.Markdown([]byte(str))))
+		//str = string(github_flavored_markdown.Markdown([]byte(str)))
 		text = str
 	}
 
