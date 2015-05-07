@@ -168,7 +168,8 @@ func getQuestionItems(sort string) []*Question {
 		//user obj
 		creator := &User{uid: uid}
 
-		questions = append(questions, &Question{Qid: qid, Title: arr["title"], Content: template.HTML(arr["content"]), Creator: creator, Created: created, Answers: answers, Votes: votes, Topics: topics})
+		//questions = append(questions, &Question{Qid: qid, Title: arr["title"], Content: template.HTML(arr["content"]), Creator: creator, Created: created, Answers: answers, Votes: votes, Topics: topics})
+		questions = append(questions, &Question{Qid: qid, Title: arr["title"], Creator: creator, Created: created, Answers: answers, Votes: votes, Topics: topics})
 	}
 
 	return questions
